@@ -1,13 +1,14 @@
 import React from "react";
 import { Label } from "src/components/ui/label";
-import { useToast } from "src/components/ui/use-toast";
 
 import type { Invoice } from "@getalby/lightning-tools/bolt11";
 import { XIcon } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import AppHeader from "src/components/AppHeader";
 import FormattedFiatAmount from "src/components/FormattedFiatAmount";
 import Loading from "src/components/Loading";
+import { PaymentFailedAlert } from "src/components/PaymentFailedAlert";
 import { PendingPaymentAlert } from "src/components/PendingPaymentAlert";
 import { SpendingAlert } from "src/components/SpendingAlert";
 import { InputWithAdornment } from "src/components/ui/custom/input-with-adornment";
@@ -20,15 +21,16 @@ import { request } from "src/utils/request";
 export default function ZeroAmount() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { data: balances } = useBalances();
 
   const invoice = state?.args?.paymentRequest as Invoice;
   const [amount, setAmount] = React.useState("");
   const [isLoading, setLoading] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
 
   const onSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setErrorMessage("");
     try {
       if (!invoice) {
         throw new Error("no invoice set");
@@ -51,18 +53,16 @@ export default function ZeroAmount() {
           preimage: payInvoiceResponse.preimage,
           pageTitle: "Pay Invoice",
           invoice,
+          amount,
         },
       });
-      toast({
-        title: "Successfully paid invoice",
-      });
+      toast("Successfully paid invoice");
     } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Failed to send payment",
+      console.error(e);
+      setErrorMessage("" + e);
+      toast.error("Failed to send payment", {
         description: "" + e,
       });
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -81,7 +81,15 @@ export default function ZeroAmount() {
   return (
     <div className="grid gap-4">
       <AppHeader title="Pay Invoice" />
-      <PendingPaymentAlert />
+      <div className="max-w-lg grid gap-4">
+        <PendingPaymentAlert />
+        {errorMessage && (
+          <PaymentFailedAlert
+            errorMessage={errorMessage}
+            invoice={invoice.paymentRequest}
+          />
+        )}
+      </div>
       <form onSubmit={onSubmit} className="grid gap-6 md:max-w-lg">
         <div className="grid gap-2">
           <div className="text-sm font-medium">Recipient</div>
@@ -141,11 +149,7 @@ export default function ZeroAmount() {
           <LinkButton to="/wallet/send" variant="outline">
             Back
           </LinkButton>
-          <LoadingButton
-            loading={isLoading}
-            type="submit"
-            className="w-full md:w-fit"
-          >
+          <LoadingButton loading={isLoading} type="submit" className="flex-1">
             Send
           </LoadingButton>
         </div>

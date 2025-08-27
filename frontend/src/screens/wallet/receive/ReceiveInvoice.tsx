@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import TickSVG from "public/images/illustrations/tick.svg";
 import React from "react";
+import { toast } from "sonner";
 import AppHeader from "src/components/AppHeader";
 import ExternalLink from "src/components/ExternalLink";
 import FormattedFiatAmount from "src/components/FormattedFiatAmount";
@@ -26,7 +27,6 @@ import { LinkButton } from "src/components/ui/custom/link-button";
 import { LoadingButton } from "src/components/ui/custom/loading-button";
 import { Input } from "src/components/ui/input";
 import { Label } from "src/components/ui/label";
-import { useToast } from "src/components/ui/use-toast";
 import { useAlbyMe } from "src/hooks/useAlbyMe";
 import { useBalances } from "src/hooks/useBalances";
 
@@ -42,7 +42,6 @@ export default function ReceiveInvoice() {
   const { data: me } = useAlbyMe();
   const { data: balances } = useBalances();
 
-  const { toast } = useToast();
   const [isLoading, setLoading] = React.useState(false);
   const [amount, setAmount] = React.useState<string>("");
   const [description, setDescription] = React.useState<string>("");
@@ -59,7 +58,7 @@ export default function ReceiveInvoice() {
     if (invoiceData?.settledAt) {
       setPaymentDone(true);
     }
-  }, [invoiceData, toast]);
+  }, [invoiceData]);
 
   if (!balances || !info || (info.albyAccountConnected && !me)) {
     return <Loading />;
@@ -85,14 +84,11 @@ export default function ReceiveInvoice() {
         setTransaction(invoice);
         setAmount("");
         setDescription("");
-        toast({
-          title: "Successfully created invoice",
-        });
+        toast("Successfully created invoice");
       }
     } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Failed to create invoice: " + e,
+      toast.error("Failed to create invoice", {
+        description: "" + e,
       });
       console.error(e);
     } finally {
@@ -101,7 +97,7 @@ export default function ReceiveInvoice() {
   };
 
   const copy = () => {
-    copyToClipboard(transaction?.invoice as string, toast);
+    copyToClipboard(transaction?.invoice as string);
   };
 
   return (
@@ -110,7 +106,7 @@ export default function ReceiveInvoice() {
       <div className="flex flex-col md:flex-row gap-12">
         <div className="w-full md:max-w-lg grid gap-6">
           {hasChannelManagement &&
-            (+amount || transaction?.amount || 0) * 1000 >=
+            (+amount * 1000 || transaction?.amount || 0) >=
               0.8 * balances.lightning.totalReceivable && (
               <LowReceivingCapacityAlert />
             )}
@@ -129,11 +125,13 @@ export default function ReceiveInvoice() {
                       <QRCode value={transaction.invoice} className="w-full" />
                       <div className="flex flex-col gap-1 items-center">
                         <p className="text-2xl font-medium slashed-zero">
-                          {new Intl.NumberFormat().format(transaction.amount)}{" "}
+                          {new Intl.NumberFormat().format(
+                            Math.floor(transaction.amount / 1000)
+                          )}{" "}
                           sats
                         </p>
                         <FormattedFiatAmount
-                          amount={transaction.amount}
+                          amount={Math.floor(transaction.amount / 1000)}
                           className="text-xl"
                         />
                       </div>
@@ -160,11 +158,13 @@ export default function ReceiveInvoice() {
                       <img src={TickSVG} className="w-48" />
                       <div className="flex flex-col gap-1 items-center">
                         <p className="text-2xl font-medium slashed-zero">
-                          {new Intl.NumberFormat().format(transaction.amount)}{" "}
+                          {new Intl.NumberFormat().format(
+                            Math.floor(transaction.amount / 1000)
+                          )}{" "}
                           sats
                         </p>
                         <FormattedFiatAmount
-                          amount={transaction.amount}
+                          amount={Math.floor(transaction.amount / 1000)}
                           className="text-xl"
                         />
                       </div>

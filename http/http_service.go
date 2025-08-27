@@ -52,8 +52,8 @@ type HttpService struct {
 
 func NewHttpService(svc service.Service, eventPublisher events.EventPublisher) *HttpService {
 	return &HttpService{
-		api:             api.NewAPI(svc, svc.GetDB(), svc.GetConfig(), svc.GetKeys(), svc.GetAlbyOAuthSvc(), svc.GetEventPublisher()),
-		albyHttpSvc:     NewAlbyHttpService(svc, svc.GetAlbyOAuthSvc(), svc.GetConfig().GetEnv()),
+		api:             api.NewAPI(svc, svc.GetDB(), svc.GetConfig(), svc.GetKeys(), svc.GetAlbySvc(), svc.GetAlbyOAuthSvc(), svc.GetEventPublisher()),
+		albyHttpSvc:     NewAlbyHttpService(svc, svc.GetAlbySvc(), svc.GetAlbyOAuthSvc(), svc.GetConfig().GetEnv()),
 		cfg:             svc.GetConfig(),
 		eventPublisher:  eventPublisher,
 		db:              svc.GetDB(),
@@ -147,6 +147,7 @@ func (httpSvc *HttpService) RegisterSharedRoutes(e *echo.Echo) {
 	restrictedApiGroup.POST("/channels", httpSvc.openChannelHandler)
 	restrictedApiGroup.POST("/channels/rebalance", httpSvc.rebalanceChannelHandler)
 	restrictedApiGroup.GET("/channels/suggestions", httpSvc.channelPeerSuggestionsHandler)
+	restrictedApiGroup.GET("/channel-offer", httpSvc.channelOfferHandler)
 	restrictedApiGroup.POST("/lsp-orders", httpSvc.newInstantChannelInvoiceHandler)
 	restrictedApiGroup.GET("/node/connection-info", httpSvc.nodeConnectionInfoHandler)
 	restrictedApiGroup.GET("/node/status", httpSvc.nodeStatusHandler)
@@ -191,6 +192,7 @@ func (httpSvc *HttpService) RegisterSharedRoutes(e *echo.Echo) {
 	restrictedApiGroup.POST("/autoswap", httpSvc.enableAutoSwapOutHandler)
 	restrictedApiGroup.DELETE("/autoswap", httpSvc.disableAutoSwapOutHandler)
 	restrictedApiGroup.POST("/node/alias", httpSvc.setNodeAliasHandler)
+	restrictedApiGroup.GET("/forwards", httpSvc.forwardsHandler)
 
 	httpSvc.albyHttpSvc.RegisterSharedRoutes(restrictedApiGroup, e)
 }
@@ -229,7 +231,7 @@ func (httpSvc *HttpService) eventHandler(c echo.Context) error {
 		})
 	}
 
-	httpSvc.api.SendEvent(sendEventRequest.Event)
+	httpSvc.api.SendEvent(sendEventRequest.Event, sendEventRequest.Properties)
 
 	return c.NoContent(http.StatusOK)
 }
@@ -436,6 +438,20 @@ func (httpSvc *HttpService) channelPeerSuggestionsHandler(c echo.Context) error 
 	ctx := c.Request().Context()
 
 	suggestions, err := httpSvc.api.GetChannelPeerSuggestions(ctx)
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, suggestions)
+}
+
+func (httpSvc *HttpService) channelOfferHandler(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	suggestions, err := httpSvc.api.GetLSPChannelOffer(ctx)
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, ErrorResponse{
@@ -1639,4 +1655,15 @@ func (httpSvc *HttpService) lnurlpVerifyHandler(c echo.Context) error {
 		Preimage: preimage,
 		Pr:       transaction.PaymentRequest,
 	})
+}
+
+func (httpSvc *HttpService) forwardsHandler(c echo.Context) error {
+	forwards, err := httpSvc.api.GetForwards()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, ErrorResponse{
+			Message: fmt.Sprintf("Failed to get forwards: %s", err.Error()),
+		})
+	}
+
+	return c.JSON(http.StatusOK, forwards)
 }

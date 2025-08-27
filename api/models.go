@@ -22,6 +22,7 @@ type API interface {
 	DeleteLightningAddress(ctx context.Context, appId uint) error
 	ListChannels(ctx context.Context) ([]Channel, error)
 	GetChannelPeerSuggestions(ctx context.Context) ([]alby.ChannelPeerSuggestion, error)
+	GetLSPChannelOffer(ctx context.Context) (*alby.LSPChannelOffer, error)
 	ResetRouter(key string) error
 	ChangeUnlockPassword(changeUnlockPasswordRequest *ChangeUnlockPasswordRequest) error
 	SetAutoUnlockPassword(unlockPassword string) error
@@ -78,7 +79,8 @@ type API interface {
 	SetNodeAlias(nodeAlias string) error
 	GetCustomNodeCommands() (*CustomNodeCommandsResponse, error)
 	ExecuteCustomNodeCommand(ctx context.Context, command string) (interface{}, error)
-	SendEvent(event string)
+	SendEvent(event string, properties interface{})
+	GetForwards() (*GetForwardsResponse, error)
 }
 
 type App struct {
@@ -219,7 +221,8 @@ type BackupReminderRequest struct {
 }
 
 type SendEventRequest struct {
-	Event string `json:"event"`
+	Event      string      `json:"event"`
+	Properties interface{} `json:"properties"`
 }
 
 type SetupRequest struct {
@@ -489,6 +492,7 @@ type Channel struct {
 	Confirmations                            *uint32     `json:"confirmations"`
 	ConfirmationsRequired                    *uint32     `json:"confirmationsRequired"`
 	ForwardingFeeBaseMsat                    uint32      `json:"forwardingFeeBaseMsat"`
+	ForwardingFeeProportionalMillionths      uint32      `json:"forwardingFeeProportionalMillionths"`
 	UnspendablePunishmentReserve             uint64      `json:"unspendablePunishmentReserve"`
 	CounterpartyUnspendablePunishmentReserve uint64      `json:"counterpartyUnspendablePunishmentReserve"`
 	Error                                    *string     `json:"error"`
@@ -543,4 +547,10 @@ type CustomNodeCommandsResponse struct {
 
 type ExecuteCustomNodeCommandRequest struct {
 	Command string `json:"command"`
+}
+
+type GetForwardsResponse struct {
+	OutboundAmountForwardedMsat uint64 `json:"outboundAmountForwardedMsat"`
+	TotalFeeEarnedMsat          uint64 `json:"totalFeeEarnedMsat"`
+	NumForwards                 uint64 `json:"numForwards"`
 }

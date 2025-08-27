@@ -1,9 +1,10 @@
 import { AlertTriangleIcon, CopyIcon, ExternalLinkIcon } from "lucide-react";
 import React, { useEffect } from "react";
+import { toast } from "sonner";
 import AppHeader from "src/components/AppHeader";
 import AppCard from "src/components/connections/AppCard";
+import { appStoreApps } from "src/components/connections/SuggestedAppData";
 import QRCode from "src/components/QRCode";
-import { suggestedApps } from "src/components/SuggestedAppData";
 import { Alert, AlertDescription, AlertTitle } from "src/components/ui/alert";
 import { Button } from "src/components/ui/button";
 import {
@@ -14,7 +15,6 @@ import {
 } from "src/components/ui/card";
 import { LoadingButton } from "src/components/ui/custom/loading-button";
 import { Input } from "src/components/ui/input";
-import { useToast } from "src/components/ui/use-toast";
 import { useApps } from "src/hooks/useApps";
 import { copyToClipboard } from "src/lib/clipboard";
 import { createApp } from "src/requests/createApp";
@@ -23,14 +23,13 @@ import { openLink } from "src/utils/openLink";
 
 export function Tictactoe() {
   const appId = "tictactoe";
-  const { toast } = useToast();
   const [isLoading, setLoading] = React.useState(false);
   const [appLink, setAppLink] = React.useState("");
   const { data: appsData, mutate: reloadApps } = useApps(undefined, undefined, {
     appStoreAppId: appId,
   });
   const tictactoeApps = appsData?.apps;
-  const app = suggestedApps.find((app) => app.id === appId)!;
+  const appStoreApp = appStoreApps.find((app) => app.id === appId)!;
 
   useEffect(() => {
     if (appLink) {
@@ -44,7 +43,7 @@ export function Tictactoe() {
     (async () => {
       try {
         const createAppResponse = await createApp({
-          name: app.title,
+          name: appStoreApp.title,
           scopes: ["get_info", "lookup_invoice", "make_invoice", "pay_invoice"],
           maxAmount: 30_000,
           budgetRenewal: "monthly",
@@ -56,9 +55,9 @@ export function Tictactoe() {
         setAppLink(
           `https://lntictactoe.com/#nwc=${encodeURIComponent(createAppResponse.pairingUri)}`
         );
-        toast({ title: "Tic Tac Toe connection created" });
+        toast("Tic Tac Toe connection created");
       } catch (error) {
-        handleRequestError(toast, "Failed to create connection", error);
+        handleRequestError("Failed to create connection", error);
       }
       setLoading(false);
       reloadApps();
@@ -70,11 +69,11 @@ export function Tictactoe() {
       <AppHeader
         title={
           <div className="flex flex-row items-center">
-            <img src={app.logo} className="w-14 h-14 rounded-lg mr-4" />
+            <img src={appStoreApp.logo} className="w-14 h-14 rounded-lg mr-4" />
             <div className="flex flex-col">
-              <div>{app.title}</div>
+              <div>{appStoreApp.title}</div>
               <div className="text-sm font-normal text-muted-foreground">
-                {app.description}
+                {appStoreApp.description}
               </div>
             </div>
           </div>
@@ -99,16 +98,13 @@ export function Tictactoe() {
           >
             <QRCode value={appLink} />
             <img
-              src={app.logo}
+              src={appStoreApp.logo}
               className="absolute w-12 h-12 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-muted p-1 rounded-xl"
             />
           </div>
           <div className="flex gap-2">
             <Input disabled readOnly type="text" value={appLink} />
-            <Button
-              onClick={() => copyToClipboard(appLink, toast)}
-              variant="outline"
-            >
+            <Button onClick={() => copyToClipboard(appLink)} variant="outline">
               <CopyIcon />
               Copy
             </Button>

@@ -2,13 +2,14 @@ import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { LinkButton } from "src/components/ui/custom/link-button";
 import { LoadingButton } from "src/components/ui/custom/loading-button";
-import { useToast } from "src/components/ui/use-toast";
 
 import type { Invoice } from "@getalby/lightning-tools/bolt11";
 import { ArrowLeftIcon } from "lucide-react";
+import { toast } from "sonner";
 import AppHeader from "src/components/AppHeader";
 import FormattedFiatAmount from "src/components/FormattedFiatAmount";
 import Loading from "src/components/Loading";
+import { PaymentFailedAlert } from "src/components/PaymentFailedAlert";
 import { PendingPaymentAlert } from "src/components/PendingPaymentAlert";
 import { SpendingAlert } from "src/components/SpendingAlert";
 import {
@@ -25,14 +26,15 @@ import { request } from "src/utils/request";
 export default function ConfirmPayment() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { data: balances } = useBalances();
 
   const invoice = state?.args?.paymentRequest as Invoice;
   const metadata = state?.args?.metadata as TransactionMetadata;
   const [isLoading, setLoading] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState("");
 
   const confirmPayment = async () => {
+    setErrorMessage("");
     try {
       setLoading(true);
       const payInvoiceResponse = await request<PayInvoiceResponse>(
@@ -58,16 +60,13 @@ export default function ConfirmPayment() {
           invoice,
         },
       });
-      toast({
-        title: "Successfully paid invoice",
-      });
+      toast("Successfully paid invoice");
     } catch (e) {
-      toast({
-        variant: "destructive",
-        title: "Failed to send payment",
+      console.error(e);
+      setErrorMessage("" + e);
+      toast.error("Failed to send payment", {
         description: "" + e,
       });
-      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -86,7 +85,15 @@ export default function ConfirmPayment() {
   return (
     <div className="grid gap-4">
       <AppHeader title="Pay Invoice" />
-      <PendingPaymentAlert />
+      <div className="max-w-lg grid gap-4">
+        <PendingPaymentAlert />
+        {errorMessage && (
+          <PaymentFailedAlert
+            errorMessage={errorMessage}
+            invoice={invoice.paymentRequest}
+          />
+        )}
+      </div>
       <div className="w-full md:max-w-lg">
         <Card>
           <CardHeader>

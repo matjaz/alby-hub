@@ -364,7 +364,7 @@ func (app *WailsApp) WailsRequestRouter(route string, method string, body string
 		}
 		return WailsRequestRouterResponse{Body: nil, Error: ""}
 	case "/api/alby/info":
-		info, err := app.svc.GetAlbyOAuthSvc().GetInfo(ctx)
+		info, err := app.svc.GetAlbySvc().GetInfo(ctx)
 		if err != nil {
 			logger.Logger.WithFields(logrus.Fields{
 				"route":  route,
@@ -421,7 +421,7 @@ func (app *WailsApp) WailsRequestRouter(route string, method string, body string
 		}
 		return WailsRequestRouterResponse{Body: nil, Error: ""}
 	case "/api/alby/rates":
-		rate, err := app.svc.GetAlbyOAuthSvc().GetBitcoinRate(ctx)
+		rate, err := app.svc.GetAlbySvc().GetBitcoinRate(ctx)
 		if err != nil {
 			logger.Logger.WithFields(logrus.Fields{
 				"route":  route,
@@ -502,6 +502,13 @@ func (app *WailsApp) WailsRequestRouter(route string, method string, body string
 			}
 			return WailsRequestRouterResponse{Body: openChannelResponse, Error: ""}
 		}
+	case "/api/channel-offer":
+		offer, err := app.api.GetLSPChannelOffer(ctx)
+		if err != nil {
+			return WailsRequestRouterResponse{Body: nil, Error: err.Error()}
+		}
+		res := WailsRequestRouterResponse{Body: offer, Error: ""}
+		return res
 	case "/api/channels/suggestions":
 		suggestions, err := app.api.GetChannelPeerSuggestions(ctx)
 		if err != nil {
@@ -1234,7 +1241,7 @@ func (app *WailsApp) WailsRequestRouter(route string, method string, body string
 				return WailsRequestRouterResponse{Body: nil, Error: err.Error()}
 			}
 
-			app.api.SendEvent(sendEventRequest.Event)
+			app.api.SendEvent(sendEventRequest.Event, sendEventRequest.Properties)
 
 			return WailsRequestRouterResponse{Body: nil, Error: ""}
 		}
@@ -1258,6 +1265,12 @@ func (app *WailsApp) WailsRequestRouter(route string, method string, body string
 			}
 			return WailsRequestRouterResponse{Body: nil, Error: ""}
 		}
+	case "/api/forwards":
+		forwards, err := app.api.GetForwards()
+		if err != nil {
+			return WailsRequestRouterResponse{Body: nil, Error: err.Error()}
+		}
+		return WailsRequestRouterResponse{Body: forwards, Error: ""}
 	}
 
 	lightningAddressRegex := regexp.MustCompile(

@@ -16,6 +16,7 @@ import { Link } from "react-router-dom";
 import AppAvatar from "src/components/AppAvatar";
 import ExternalLink from "src/components/ExternalLink";
 import FormattedFiatAmount from "src/components/FormattedFiatAmount";
+import { PaymentFailedAlert } from "src/components/PaymentFailedAlert";
 import PodcastingInfo from "src/components/PodcastingInfo";
 import {
   Dialog,
@@ -25,7 +26,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "src/components/ui/dialog";
-import { useToast } from "src/components/ui/use-toast";
 import { ALBY_ACCOUNT_APP_NAME } from "src/constants";
 import { useApp } from "src/hooks/useApp";
 import { useSwap } from "src/hooks/useSwaps";
@@ -51,7 +51,6 @@ function TransactionItem({ tx }: Props) {
   const { data: app } = useApp(tx.appId);
   const swapId = tx.metadata?.swap_id;
   const { data: swap } = useSwap(swapId);
-  const { toast } = useToast();
   const [showDetails, setShowDetails] = React.useState(false);
   const type = tx.type;
 
@@ -97,7 +96,7 @@ function TransactionItem({ tx }: Props) {
           : ArrowDownIcon;
 
   const copy = (text: string) => {
-    copyToClipboard(text, toast);
+    copyToClipboard(text);
   };
 
   const typeStateIcon = (
@@ -318,6 +317,14 @@ function TransactionItem({ tx }: Props) {
                     from {npub}
                   </span>
                 </p>
+              </div>
+            )}
+            {tx.state === "failed" && (
+              <div className="mt-6">
+                <PaymentFailedAlert
+                  errorMessage={tx.failureReason}
+                  invoice={tx.invoice}
+                />
               </div>
             )}
             <div className="mt-4 w-full">

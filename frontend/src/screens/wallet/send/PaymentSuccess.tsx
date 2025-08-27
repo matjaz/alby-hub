@@ -17,7 +17,6 @@ import {
   CardHeader,
   CardTitle,
 } from "src/components/ui/card";
-import { useToast } from "src/components/ui/use-toast";
 import { copyToClipboard } from "src/lib/clipboard";
 
 import TickSVG from "public/images/illustrations/tick.svg";
@@ -27,7 +26,6 @@ import { LinkButton } from "src/components/ui/custom/link-button";
 export default function PaymentSuccess() {
   const { state } = useLocation();
   const navigate = useNavigate();
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!state?.preimage) {
@@ -42,9 +40,10 @@ export default function PaymentSuccess() {
   const to = state?.to as string;
   const pageTitle = state?.pageTitle as string;
   const invoice = state?.invoice as Invoice;
+  const amount = state?.amount as number;
 
   const copy = () => {
-    copyToClipboard(state.preimage as string, toast);
+    copyToClipboard(state.preimage as string);
   };
 
   return (
@@ -59,10 +58,10 @@ export default function PaymentSuccess() {
             <img src={TickSVG} className="w-48" />
             <div className="flex flex-col gap-1 items-center">
               <p className="text-2xl font-medium slashed-zero">
-                {new Intl.NumberFormat().format(invoice.satoshi)} sats
+                {new Intl.NumberFormat().format(invoice.satoshi || amount)} sats
               </p>
               <FormattedFiatAmount
-                amount={invoice.satoshi}
+                amount={invoice.satoshi || amount}
                 className="text-xl"
               />
             </div>
